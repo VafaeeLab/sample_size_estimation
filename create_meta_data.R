@@ -28,6 +28,7 @@ meta_data <- samples %>%
   inner_join(original_meta_data) %>%
   select(sample, sample_id, NCBI_accession, study_condition, disease, age, age_category, 
          subcohort, treatment, toxicity_above_zero, RECIST, ORR) %>%
+  mutate(sample = gsub("-", "_", sample, fixed = TRUE)) %>%
   rename(c("ICIresponder" = "ORR"))
 
 write.csv(meta_data, "data/meta_data.csv", row.names = FALSE)
