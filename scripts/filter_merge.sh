@@ -1,0 +1,1 @@
+grep -E "s__|clade" merged_abundance_table.txt | sed 's/^.*s__//g'\ >> species_abundance.txt

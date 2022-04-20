@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#PBS -l select=1:ncpus=16:mem=64gb
+#PBS -l walltime=12:00:00
+#PBS -M a.vijayan@unsw.edu.au
+#PBS -m ae
+
+module load bowtie/2.3.5.1
+module load metaphlan/3.0.10
+cd /srv/scratch/vafaeelab/AbhishekVijayan/sample_size_estimation/PRJEB43119/data_profiles
+
+merge_metaphlan_tables.py *_profile.txt > merged_abundance_table.txt
