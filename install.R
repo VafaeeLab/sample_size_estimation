@@ -1,4 +1,4 @@
-BiocManager::install("curatedMetagenomicData")
+BiocManager::install("curatedMetagenomicData", force = TRUE)
 
 #https://askubuntu.com/questions/890027/installing-gsl-libraries-in-ubuntu-16-04-via-terminal
 BiocManager::install("DirichletMultinomial")
