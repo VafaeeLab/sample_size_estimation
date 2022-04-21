@@ -2,6 +2,7 @@ library(tidyverse)
 library(ranger)
 library(mRMRe)
 library(randomForest)
+library(psdR)
 
 meta_data <- read.csv("data/meta_data.csv")
 
@@ -68,6 +69,9 @@ min(data.train)
 data.train <- log(data.train)
 data.test <- log(data.test)
 
+# data.train <- data.frame(psd(data.train))
+# data.test <- data.frame(psd(data.test))
+
 #filter and transform end
 
 normparam <- caret::preProcess(data.train) 
@@ -76,6 +80,8 @@ data.test <- predict(normparam, data.test) #normalizing test data using params f
 
 colSums(data.train)
 
+# data.train <- data.frame(psd(data.train))
+# data.test <- data.frame(psd(data.test))
 
 assertthat::are_equal(rownames(data.train), label.train$sample)
 assertthat::are_equal(rownames(data.test), label.test$sample)
