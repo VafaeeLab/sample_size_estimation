@@ -7,7 +7,7 @@ library(umap)
 
 meta_data <- read.csv("data/meta_data.csv")
 
-
+summary(factor(meta_data$subcohort))
 # data_dummy <- data.frame("sample" = paste0("s", seq(1,100)),
 #                          "Label" = c(rep("yes", 40), rep("no", 60)),
 #                          "f1" = c(runif(40, min = 1, max = 10),
@@ -30,9 +30,18 @@ data <- read.csv("data/formatted_data.csv")
 colnames(data)[1] <- "sample"
 sum(is.na(data))
 
+# output_labels <- meta_data %>%
+#   filter(!is.na(RECIST) & RECIST != "SD") %>%
+#   select(c(sample, ICIresponder)) 
+
 output_labels <- meta_data %>%
-  select(c(sample, ICIresponder)) %>%
-  rename(c("Label" = "ICIresponder"))
+  # filter(!is.na(RECIST) & RECIST != "SD") %>%
+  filter(subcohort %in% c("PRIMM-NL", "PRIMM-UK")) %>%
+  select(c(sample, ICIresponder)) 
+
+output_labels <- output_labels %>%
+  dplyr::rename(c("Label" = "ICIresponder"))
+
 
 combined_data <- output_labels %>%
   inner_join(data)
@@ -217,3 +226,52 @@ rf_model(data.train, label.train, data.test, label.test,
   #with svm radial kernel
 # [1] 0.6875000 0.5873016 0.5000000 0.8333333
 
+
+# on PRIMM-NL data
+# [1] 0.5
+# [1] 0.7111111
+# [1] 0.6
+# [1] 0.6000000 0.1666667 0.0000000 1.0000000
+
+  #without SD
+# [1] 0.5
+# [1] 1
+# [1] 0.625
+# [1] 0.625 0.375 0.500 0.750
+
+
+
+# on PRIMM-UK data
+# > logistic_regression(data.train, label.train, 
+#                       +                     data.test, label.test,
+#                       +                     classes, regularize = "l2")
+# [1] 0.5
+# [1] 0.6136364
+# [1] 0.6
+# [1] 0.6000000 0.7916667 0.0000000 1.0000000
+# > logistic_regression(data.train, label.train, 
+#                       +                     data.test, label.test,
+#                       +                     classes, regularize = "l1")
+# [1] 0.5
+# [1] 0.8863636
+# [1] 0.6
+# [1] 0.600 0.875 0.000 1.000
+# > svm_model(data.train, label.train, data.test, label.test, 
+#             +           classes, kernel = "sigmoid")
+# [1] 0.7000000 0.7500000 0.5000000 0.8333333
+# > svm_model(data.train, label.train, data.test, label.test, 
+#             +           classes, kernel = "radial")
+# [1] 0.70 0.75 0.25 1.00
+# > rf_model(data.train, label.train, data.test, label.test, 
+#            +           classes)
+# [1] 0.70 1.00 0.25 1.00
+
+
+# on PRIMM-UK data without SD
+# > logistic_regression(data.train, label.train, 
+#                       +                     data.test, label.test,
+#                       +                     classes, regularize = "l2")
+# [1] 0.5
+# [1] 0.8333333
+# [1] 0.7142857
+# [1] 0.7142857 0.6666667 0.3333333 1.0000000
