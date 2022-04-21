@@ -3,6 +3,7 @@ library(ranger)
 library(mRMRe)
 library(randomForest)
 library(psdR)
+library(umap)
 
 meta_data <- read.csv("data/meta_data.csv")
 
@@ -10,6 +11,8 @@ data <- read.csv("data/formatted_data.csv")
 
 # data <- read.csv("data/all_level_formatted_data.csv")
 colnames(data)[1] <- "sample"
+sum(is.na(data))
+
 output_labels <- meta_data %>%
   select(c(sample, ICIresponder)) %>%
   rename(c("Label" = "ICIresponder"))
@@ -28,6 +31,8 @@ data <- combined_data %>%
   column_to_rownames("sample")
 
 assertthat::are_equal(rownames(data), output_labels$sample)
+
+
 
 #############################
 
@@ -84,6 +89,35 @@ colSums(data.train)
 
 # data.train <- data.frame(psd(data.train))
 # data.test <- data.frame(psd(data.test))
+
+### dim red plots
+
+set.seed(1000)
+result <- Rtsne::Rtsne(data.train, perplexity = 30)
+dim_red_df <- data.frame(x = result$Y[,1], y = result$Y[,2], 
+                         Colour = label.train$Label)    
+xlab <- "tSNE 1"
+ylab <- "tSNE 2"
+
+ggplot2::ggplot(dim_red_df) +
+  ggplot2::geom_point(ggplot2::aes(x = x, y = y, colour = Colour)) +
+  ggplot2::labs(title = "tSNE") +
+  ggplot2::xlab(xlab) +
+  ggplot2::ylab(ylab)
+
+result <- umap(data.train)
+dim_red_df <- data.frame(x = result$layout[,1], y = result$layout[,2], 
+                         Colour = label.train$Label)  
+xlab <- "UMAP 1"
+ylab <- "UMAP 2"
+
+ggplot2::ggplot(dim_red_df) +
+  ggplot2::geom_point(ggplot2::aes(x = x, y = y, colour = Colour)) +
+  ggplot2::labs(title = "UMAP") +
+  ggplot2::xlab(xlab) +
+  ggplot2::ylab(ylab)
+
+### dim red plots end
 
 assertthat::are_equal(rownames(data.train), label.train$sample)
 assertthat::are_equal(rownames(data.test), label.test$sample)
