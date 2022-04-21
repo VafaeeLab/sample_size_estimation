@@ -7,6 +7,23 @@ library(umap)
 
 meta_data <- read.csv("data/meta_data.csv")
 
+
+# data_dummy <- data.frame("sample" = paste0("s", seq(1,100)),
+#                          "Label" = c(rep("yes", 40), rep("no", 60)),
+#                          "f1" = c(runif(40, min = 1, max = 10),
+#                                   runif(60, min = 30, max = 50)),
+#                          "f2" = c(runif(40, min = 100, max = 101),
+#                                   runif(60, min = 102, max = 103)),
+#                          "f3" = c(runif(40, min = 20, max = 24),
+#                                   runif(60, min = 23, max = 25)),
+#                          "f4" = c(runif(100, min = 20, max = 80))
+#                          )
+# data <- data_dummy %>%
+#   select(-c(Label)) %>%
+#   column_to_rownames("sample")
+# output_labels <- data_dummy[, 1:2]
+
+
 data <- read.csv("data/formatted_data.csv")
 
 # data <- read.csv("data/all_level_formatted_data.csv")
@@ -93,7 +110,7 @@ colSums(data.train)
 ### dim red plots
 
 set.seed(1000)
-result <- Rtsne::Rtsne(data.train, perplexity = 30)
+result <- Rtsne::Rtsne(data.train, perplexity = 10)
 dim_red_df <- data.frame(x = result$Y[,1], y = result$Y[,2], 
                          Colour = label.train$Label)    
 xlab <- "tSNE 1"
