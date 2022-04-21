@@ -4,12 +4,28 @@ library(mRMRe)
 
 meta_data <- read.csv("data/meta_data.csv")
 
-data <- read.csv("data/formatted_data.csv", row.names = 1)
+data <- read.csv("data/formatted_data.csv")
+colnames(data)[1] <- "sample"
 output_labels <- meta_data %>%
   select(c(sample, ICIresponder)) %>%
   rename(c("Label" = "ICIresponder"))
 
+combined_data <- output_labels %>%
+  inner_join(data)
 
+missing1 <- output_labels %>%
+  anti_join(data)
+missing2 <- data %>%
+  anti_join(output_labels)
+
+
+data <- combined_data %>%
+  select(-c(Label)) %>%
+  column_to_rownames("sample")
+
+assertthat::are_equal(rownames(data), output_labels$sample)
+
+#############################
 
 random_seed = 1000
 set.seed(random_seed)
@@ -60,6 +76,11 @@ data.test <- predict(normparam, data.test) #normalizing test data using params f
 colSums(data.train)
 
 
+assertthat::are_equal(rownames(data.train), label.train$sample)
+assertthat::are_equal(rownames(data.test), label.test$sample)
+
+
+
 #ranger
 set.seed(random_seed)
 
@@ -78,6 +99,9 @@ data.train <- data.train[, features, drop = FALSE]
 data.test <- data.test[, features, drop = FALSE]
 
 
+assertthat::are_equal(rownames(data.train), label.train$sample)
+assertthat::are_equal(rownames(data.test), label.test$sample)
+
 #mrmr
 
 classes = c("yes", "no")
@@ -92,12 +116,20 @@ features <- mRMRe::solutions(filter)[[1]] - 1
 data.train <- data.train[, features, drop = FALSE]
 data.test <- data.test[, features, drop = FALSE]
 
+#mrmr end
+
+
+
+#classification
+
+classes = c("yes", "no")
+
 logistic_regression(data.train, label.train, 
                     data.test, label.test,
-                    classes = c("yes", "no"), regularize = "l2")
+                    classes, regularize = "l2")
 logistic_regression(data.train, label.train, 
                     data.test, label.test,
-                    classes = c("yes", "no"), regularize = "l1")
+                    classes, regularize = "l1")
 # [1] 0.5
 # [1] 0.5757576
 # [1] 0.5625
