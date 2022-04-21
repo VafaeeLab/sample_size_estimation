@@ -7,6 +7,8 @@ library(psdR)
 meta_data <- read.csv("data/meta_data.csv")
 
 data <- read.csv("data/formatted_data.csv")
+
+# data <- read.csv("data/all_level_formatted_data.csv")
 colnames(data)[1] <- "sample"
 output_labels <- meta_data %>%
   select(c(sample, ICIresponder)) %>%
@@ -98,9 +100,9 @@ summary(ranger_model$variable.importance)
 
 hist(ranger_model$variable.importance)
 
-# features <- which(ranger_model$variable.importance != 0)
+features <- which(ranger_model$variable.importance >= 0)
 
-features <- which(ranger_model$variable.importance >= quantile(ranger_model$variable.importance)[3])
+# features <- which(ranger_model$variable.importance >= quantile(ranger_model$variable.importance)[3])
 
 data.train <- data.train[, features, drop = FALSE]
 data.test <- data.test[, features, drop = FALSE]
@@ -113,7 +115,7 @@ data.test <- data.test[, features, drop = FALSE]
 # mrmr.data.train <- mRMRe::mRMR.data(data = data.frame(
 #   target = factor(label.train$Label, levels = classes, ordered = TRUE),
 #   data.train))
-# filter <- mRMRe::mRMR.classic(data = mrmr.data.train, target_indices = c(1), feature_count = 300)
+# filter <- mRMRe::mRMR.classic(data = mrmr.data.train, target_indices = c(1), feature_count = 400)
 # 
 # features <- mRMRe::solutions(filter)[[1]] - 1
 # 
