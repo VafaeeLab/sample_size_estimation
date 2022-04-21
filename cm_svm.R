@@ -27,7 +27,8 @@ svm_model <- function(data.train, label.train, data.test, label.test,
     
     
     metrics <- compute_metrics(pred = pred, pred_prob = pred_prob, true_label = label.test$Label, classes = classes)    
-    print(metrics)
+    # print(metrics)
+    return(metrics)
   })
   
   

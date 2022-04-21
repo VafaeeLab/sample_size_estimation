@@ -28,7 +28,7 @@ rf_model <- function(x.train, y.train, x.test, y.test, classes,
       pred <- ifelse(pred_prob > 0.5, classes[2], classes[1])
       
       metrics <- compute_metrics(pred = pred, pred_prob = pred_prob, true_label = y.test$Label, classes = classes)
-      print(metrics)    
+      # print(metrics)    
     } else{
       print("data to RF : all fields constant!")
       print(dim(x.train))
@@ -37,4 +37,5 @@ rf_model <- function(x.train, y.train, x.test, y.test, classes,
   })
   
   # return (list(model_name, metrics, feature_imp))
+  return(metrics)
 }
