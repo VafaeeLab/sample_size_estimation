@@ -1,6 +1,7 @@
 library(tidyverse)
 library(ranger)
 library(mRMRe)
+library(randomForest)
 
 meta_data <- read.csv("data/meta_data.csv")
 
@@ -91,7 +92,7 @@ summary(ranger_model$variable.importance)
 
 hist(ranger_model$variable.importance)
 
-features <- which(ranger_model$variable.importance != 0)
+# features <- which(ranger_model$variable.importance != 0)
 
 features <- which(ranger_model$variable.importance >= quantile(ranger_model$variable.importance)[3])
 
@@ -99,25 +100,26 @@ data.train <- data.train[, features, drop = FALSE]
 data.test <- data.test[, features, drop = FALSE]
 
 
-assertthat::are_equal(rownames(data.train), label.train$sample)
-assertthat::are_equal(rownames(data.test), label.test$sample)
-
 #mrmr
 
-classes = c("yes", "no")
-
-mrmr.data.train <- mRMRe::mRMR.data(data = data.frame(
-  target = factor(label.train$Label, levels = classes, ordered = TRUE),
-  data.train))
-filter <- mRMRe::mRMR.classic(data = mrmr.data.train, target_indices = c(1), feature_count = 400)
-
-features <- mRMRe::solutions(filter)[[1]] - 1
-
-data.train <- data.train[, features, drop = FALSE]
-data.test <- data.test[, features, drop = FALSE]
+# classes = c("yes", "no")
+# 
+# mrmr.data.train <- mRMRe::mRMR.data(data = data.frame(
+#   target = factor(label.train$Label, levels = classes, ordered = TRUE),
+#   data.train))
+# filter <- mRMRe::mRMR.classic(data = mrmr.data.train, target_indices = c(1), feature_count = 300)
+# 
+# features <- mRMRe::solutions(filter)[[1]] - 1
+# 
+# data.train <- data.train[, features, drop = FALSE]
+# data.test <- data.test[, features, drop = FALSE]
 
 #mrmr end
 
+
+
+assertthat::are_equal(rownames(data.train), label.train$sample)
+assertthat::are_equal(rownames(data.test), label.test$sample)
 
 
 #classification
@@ -130,27 +132,29 @@ logistic_regression(data.train, label.train,
 logistic_regression(data.train, label.train, 
                     data.test, label.test,
                     classes, regularize = "l1")
-# [1] 0.5
-# [1] 0.5757576
-# [1] 0.5625
-# [1] 0.5625 0.5000 0.0000 1.0000
 
-
-# with ranger second option and l2 logreg
-# [1] 0.5
-# [1] 0.780303
-# [1] 0.59375
-# [1] 0.59375000 0.39285714 0.07142857 1.00000000
-
-
-#with ranger second option and l1 logreg
-# [1] 0.5
-# [1] 0.5757576
-# [1] 0.5625
-# [1] 0.5625 0.5000 0.0000 1.0000
 
 
 svm_model(data.train, label.train, data.test, label.test, 
           classes, kernel = "sigmoid")
 svm_model(data.train, label.train, data.test, label.test, 
           classes, kernel = "radial")
+
+rf_model(data.train, label.train, data.test, label.test, 
+          classes)
+
+
+#ranger 3rd quantile features 
+
+  #with l2 logreg
+# [1] 0.5
+# [1] 0.7651515
+# [1] 0.5625
+# [1] 0.56250000 0.54761905 0.07142857 0.94444444
+
+  #with svm sigmoid kernel
+# [1] 0.6562500 0.5873016 0.4285714 0.8333333
+
+  #with svm radial kernel
+# [1] 0.6875000 0.5873016 0.5000000 0.8333333
+
