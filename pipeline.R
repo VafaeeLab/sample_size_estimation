@@ -14,92 +14,7 @@ meta_data <- read.csv("data/meta_data.csv")
 summary(factor(meta_data$subcohort))
 
 
-data <- read.csv("data/formatted_data.csv")
 
-data <- read.csv("data/all_level_formatted_data.csv")
-colnames(data)[1] <- "sample"
-sum(is.na(data))
-
-output_labels <- meta_data %>%
-  # filter(!is.na(RECIST) & RECIST != "SD") %>%
-  filter(subcohort %in% c("PRIMM-UK")) %>%
-  select(c(sample, ICIresponder)) 
-
-output_labels <- output_labels %>%
-  dplyr::rename(c("Label" = "ICIresponder"))
-
-
-combined_data <- output_labels %>%
-  inner_join(data)
-
-missing1 <- output_labels %>%
-  anti_join(data)
-missing2 <- data %>%
-  anti_join(output_labels)
-
-
-data <- combined_data %>%
-  select(-c(Label)) %>%
-  column_to_rownames("sample")
-
-assertthat::are_equal(rownames(data), output_labels$sample)
-
-
-all_result_df <- data.frame(matrix(nrow = 0, ncol = 6, dimnames = list(c(), 
-                                                                       c("size_iter", "samples",
-                                                                         "cm", "iter", 
-                                                                         "acc", "auc"))
-)
-)
-for(ss_i in c(1:10)){
-  if(ss_i >= 2){
-    train_index <- caret::createDataPartition(output_labels$Label, p = .9, 
-                                              list = FALSE, 
-                                              times = 1)
-    data <- data[train_index, ]
-    output_labels <- output_labels[train_index, ]    
-  }
-  print(ss_i)
-  print(dim(data))
-  
-  set.seed(1000)
-  train_index <- caret::createMultiFolds(y = output_labels$Label, k = 5, times = 10)
-  
-  result_df <- data.frame(matrix(nrow = 0, ncol = 4, dimnames = list(c(), 
-                                                                     c("cm", "iter", "acc", "auc"))
-  )
-  )
-  
-  for(i in c(1:50)){
-    i <- 1
-    
-    data.train <- data[train_index[[i]], ]
-    label.train <- output_labels[train_index[[i]], ]
-    
-    data.test <- data[-train_index[[i]], ]
-    label.test <- output_labels[-train_index[[i]], ]  
-    
-    # print(assertthat::are_equal(rownames(data.train), label.train$sample))
-    # print(assertthat::are_equal(rownames(data.test), label.test$sample))
-    
-  }
-  
-  result_df <- result_df %>%
-    mutate(acc = as.double(acc), auc = as.double(auc))
-  
-  result_df <- result_df %>%
-    mutate("size_iter" = ss_i, .before = "cm") %>%
-    mutate("samples" = dim(data)[1], .after = "size_iter")
-  
-  
-  all_result_df <- rbind(all_result_df,
-                         result_df)
-}
-
-pipeline(data.train, label.train, data.test, label.test, classes)
-pipeline(data.train, label.train, NA, NA, classes)
-
-classes = c("yes", "no")
 pipeline <- function(data.train, label.train, 
                      data.test = NA, label.test = NA,
                      classes){
@@ -158,15 +73,124 @@ pipeline <- function(data.train, label.train,
                      classes)  
   res_rf <- res_rf[1:2]
   
-  result_df <- rbind(c("l2", res_l2),
-                     c("l1", res_l1),
-                     c("svmsig", res_svmsig),
-                     c("svmrad", res_svmrad),
-                     c("rf", res_rf))  
+  result_df <- data.frame(rbind(c("l2", res_l2),
+                                c("l1", res_l1),
+                                c("svmsig", res_svmsig),
+                                c("svmrad", res_svmrad),
+                                c("rf", res_rf)))  
+  
   colnames(result_df) <- c("cm", "acc", "auc")
   
   return(result_df)
 }
+
+classes = c("yes", "no")
+pipeline(data.train, label.train, data.test, label.test, classes)
+pipeline(data.train, label.train, NA, NA, classes)
+
+
+#create smaller subsets of data with 0.9 size successively
+# and in each of those execute pipeline with whole data
+#        and also run 50 different 80:20 train:test splits
+run_pipeline_multiple_subsets <- function(data, output_labels){
+  all_result_df <- data.frame(matrix(nrow = 0, ncol = 6, 
+                                     dimnames = list(c(), 
+                                                     c("size_iter", "samples",
+                                                       "cm", 
+                                                       "acc", "auc",
+                                                       "iter"))
+  )
+  )
+  for(ss_i in c(1:10)){
+    # ss_i <- 2
+    if(ss_i >= 2){
+      train_index <- caret::createDataPartition(output_labels$Label, p = .9, 
+                                                list = FALSE, 
+                                                times = 1)
+      data <- data[train_index, ]
+      output_labels <- output_labels[train_index, ]    
+    }
+    print(ss_i)
+    print(dim(data))
+    
+    set.seed(1000)
+    train_index <- caret::createMultiFolds(y = output_labels$Label, k = 5, times = 10)
+    
+    #result without train-test split
+    result_df <- pipeline(data, output_labels, NA, NA, classes)
+    result_df <- result_df %>%
+      mutate("iter" = NA)
+    #result_df : cm, acc, auc, iter
+    
+    #results with train-test split
+    for(i in c(1:5)){
+      # i <- 1
+      data.train <- data[train_index[[i]], ]
+      label.train <- output_labels[train_index[[i]], ]
+      
+      data.test <- data[-train_index[[i]], ]
+      label.test <- output_labels[-train_index[[i]], ]  
+      
+      # print(assertthat::are_equal(rownames(data.train), label.train$sample))
+      # print(assertthat::are_equal(rownames(data.test), label.test$sample))
+      
+      result_df <- rbind(result_df,
+                         pipeline(data.train, label.train, 
+                                  data.test, label.test, 
+                                  classes) %>%
+                           mutate("iter" = i))
+    }
+    
+    result_df <- result_df %>%
+      mutate(acc = as.double(acc), auc = as.double(auc))
+    
+    result_df <- result_df %>%
+      mutate("size_iter" = ss_i, .before = "cm") %>%
+      mutate("samples" = dim(data)[1], .after = "size_iter")
+    
+    all_result_df <- rbind(all_result_df,
+                           result_df)
+  } 
+  return (all_result_df)
+}
+
+#with 164 patients
+
+
+
+
+
+
+#with PRIMM-UK subcohort
+
+# data <- read.csv("data/formatted_data.csv")
+
+data <- read.csv("data/all_level_formatted_data.csv")
+colnames(data)[1] <- "sample"
+sum(is.na(data))
+output_labels <- meta_data %>%
+  # filter(!is.na(RECIST) & RECIST != "SD") %>%
+  filter(subcohort %in% c("PRIMM-UK")) %>%
+  select(c(sample, ICIresponder)) 
+
+output_labels <- output_labels %>%
+  dplyr::rename(c("Label" = "ICIresponder"))
+
+combined_data <- output_labels %>%
+  inner_join(data)
+missing1 <- output_labels %>%
+  anti_join(data)
+missing2 <- data %>%
+  anti_join(output_labels)
+
+data <- combined_data %>%
+  select(-c(Label)) %>%
+  column_to_rownames("sample")
+
+assertthat::are_equal(rownames(data), output_labels$sample)
+
+all_result_df <- run_pipeline_multiple_subsets(data, output_labels)
+
 
 # ss = 1
 get_result_summary <- function(result_df, model, ss = 1){
