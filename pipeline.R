@@ -4,6 +4,10 @@ library(mRMRe)
 library(randomForest)
 library(psdR)
 library(umap)
+source("cm_lr.R")
+source("cm_svm.R")
+source("cm_rf.R")
+source("compute_metrics.R")
 
 meta_data <- read.csv("data/meta_data.csv")
 
@@ -42,10 +46,10 @@ assertthat::are_equal(rownames(data), output_labels$sample)
 
 
 all_result_df <- data.frame(matrix(nrow = 0, ncol = 6, dimnames = list(c(), 
-                                                                   c("size_iter", "samples",
-                                                                     "cm", "iter", 
-                                                                     "acc", "auc"))
-    )
+                                                                       c("size_iter", "samples",
+                                                                         "cm", "iter", 
+                                                                         "acc", "auc"))
+)
 )
 for(ss_i in c(1:10)){
   if(ss_i >= 2){
@@ -67,7 +71,7 @@ for(ss_i in c(1:10)){
   )
   
   for(i in c(1:50)){
-    # i <- 1
+    i <- 1
     
     data.train <- data[train_index[[i]], ]
     label.train <- output_labels[train_index[[i]], ]
@@ -78,89 +82,8 @@ for(ss_i in c(1:10)){
     # print(assertthat::are_equal(rownames(data.train), label.train$sample))
     # print(assertthat::are_equal(rownames(data.test), label.test$sample))
     
-    filtered_features <- colSums(data.train) != 0
-    # sum(filtered_features)
-    data.train <- data.train[, filtered_features]
-    data.test <- data.test[, filtered_features]
-    
-    # min(data.train)
-    # max(data.train)
-    # sum(data.train == 0)
-    # dim(data.train)[1] * dim(data.train)[2]
-    
-    # min(data.train[data.train != 0])
-    #4e-05
-    
-    data.train <- data.train + 10^-5
-    data.test <- data.test + 10^-5
-    
-    # min(data.train)
-    
-    data.train <- log(data.train)
-    data.test <- log(data.test)
-    
-    # data.train <- data.frame(psd(data.train))
-    # data.test <- data.frame(psd(data.test))
-    
-    #filter and transform end
-    
-    normparam <- caret::preProcess(data.train) 
-    data.train <- predict(normparam, data.train)
-    data.test <- predict(normparam, data.test) #normalizing test data using params from train data 
-    
-    # colSums(data.train)
-    
-    
-    
-    
-    #ranger
-    random_seed <- 1000
-    set.seed(random_seed)
-    
-    ranger_model <- ranger::ranger(x = data.train, y = factor(label.train$Label), 
-                                   importance = "impurity_corrected")
-    features <- which(ranger_model$variable.importance >= 0)
-    data.train <- data.train[, features, drop = FALSE]
-    data.test <- data.test[, features, drop = FALSE]
-    
-    print(assertthat::are_equal(rownames(data.train), label.train$sample))
-    print(assertthat::are_equal(rownames(data.test), label.test$sample))
-    
-    
-    #classification model
-    classes = c("yes", "no")
-    
-    res_l2 <- logistic_regression(data.train, label.train, 
-                                  data.test, label.test,
-                                  classes, regularize = "l2")
-    res_l2 <- c(i, res_l2[1:2])
-    res_l1 <- logistic_regression(data.train, label.train, 
-                                  data.test, label.test,
-                                  classes, regularize = "l1")
-    res_l1 <- c(i, res_l1[1:2])
-    
-    
-    res_svmsig <- svm_model(data.train, label.train, data.test, label.test, 
-                            classes, kernel = "sigmoid")
-    res_svmsig <- c(i, res_svmsig[1:2])
-    
-    res_svmrad <- svm_model(data.train, label.train, data.test, label.test, 
-                            classes, kernel = "radial")
-    res_svmrad <- c(i, res_svmrad[1:2])
-    
-    res_rf <- rf_model(data.train, label.train, data.test, label.test, 
-                       classes)  
-    res_rf <- c(i, res_rf[1:2])
-    
-    
-    result_df <- rbind(result_df,
-                       c("l2", res_l2),
-                       c("l1", res_l1),
-                       c("svmsig", res_svmsig),
-                       c("svmrad", res_svmrad),
-                       c("rf", res_rf))
   }
-  colnames(result_df) <- c("cm", "iter", "acc", "auc")
+  
   result_df <- result_df %>%
     mutate(acc = as.double(acc), auc = as.double(auc))
   
@@ -171,6 +94,78 @@ for(ss_i in c(1:10)){
   
   all_result_df <- rbind(all_result_df,
                          result_df)
+}
+
+pipeline(data.train, label.train, data.test, label.test, classes)
+pipeline(data.train, label.train, NA, NA, classes)
+
+classes = c("yes", "no")
+pipeline <- function(data.train, label.train, 
+                     data.test = NA, label.test = NA,
+                     classes){
+  #filter and transform
+  filtered_features <- colSums(data.train) != 0
+  data.train <- data.train[, filtered_features]
+  # min(data.train[data.train != 0])
+  #4e-05
+  
+  data.train <- data.train + 10^-5
+  data.train <- log(data.train)
+  
+  #normalize
+  normparam <- caret::preProcess(data.train) 
+  data.train <- predict(normparam, data.train)
+  # colSums(data.train)  
+  
+  #ranger
+  random_seed <- 1000
+  set.seed(random_seed)
+  ranger_model <- ranger::ranger(x = data.train, y = factor(label.train$Label), 
+                                 importance = "impurity_corrected")
+  features <- which(ranger_model$variable.importance >= 0)
+  data.train <- data.train[, features, drop = FALSE]
+  print(assertthat::are_equal(rownames(data.train), label.train$sample))
+  
+  if(!is.na(data.test) && !is.na(label.test)){
+    data.test <- data.test[, filtered_features]    
+    data.test <- data.test + 10^-5
+    data.test <- log(data.test)
+    data.test <- predict(normparam, data.test) #normalizing test data using params from train data 
+    data.test <- data.test[, features, drop = FALSE]
+    print(assertthat::are_equal(rownames(data.test), label.test$sample))  
+  }
+  
+  #classification model
+  res_l2 <- logistic_regression(data.train, label.train, 
+                      data.test, label.test,
+                      classes, regularize = "l2")
+  res_l2 <- res_l2[1:2]
+  res_l1 <- logistic_regression(data.train, label.train, 
+                                data.test, label.test,
+                                classes, regularize = "l1")
+  res_l1 <- res_l1[1:2]
+  
+  
+  res_svmsig <- svm_model(data.train, label.train, data.test, label.test, 
+                          classes, kernel = "sigmoid")
+  res_svmsig <- res_svmsig[1:2]
+  
+  res_svmrad <- svm_model(data.train, label.train, data.test, label.test, 
+                          classes, kernel = "radial")
+  res_svmrad <- res_svmrad[1:2]
+  
+  res_rf <- rf_model(data.train, label.train, data.test, label.test,
+                     classes)  
+  res_rf <- res_rf[1:2]
+  
+  result_df <- rbind(c("l2", res_l2),
+                     c("l1", res_l1),
+                     c("svmsig", res_svmsig),
+                     c("svmrad", res_svmrad),
+                     c("rf", res_rf))  
+  colnames(result_df) <- c("cm", "acc", "auc")
+  
+  return(result_df)
 }
 
 # ss = 1
