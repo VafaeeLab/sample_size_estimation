@@ -15,6 +15,7 @@ summary(factor(meta_data$subcohort))
 
 
 
+
 pipeline <- function(data.train, label.train, 
                      data.test = NA, label.test = NA,
                      classes){
@@ -89,10 +90,10 @@ pipeline <- function(data.train, label.train,
 # pipeline(data.train, label.train, NA, NA, classes)
 
 
-#create smaller subsets of data with 0.9 size successively
+#create smaller subsets of data with 0.98 size successively (total 30)
 # and in each of those execute pipeline with whole data
 #        and also run 50 different 80:20 train:test splits
-run_pipeline_multiple_subsets <- function(data, output_labels){
+run_pipeline_multiple_subsets <- function(data, output_labels, p = 0.98, ss_iter = 30){
   all_result_df <- data.frame(matrix(nrow = 0, ncol = 6, 
                                      dimnames = list(c(), 
                                                      c("size_iter", "samples",
@@ -101,10 +102,10 @@ run_pipeline_multiple_subsets <- function(data, output_labels){
                                                        "iter"))
   )
   )
-  for(ss_i in c(1:10)){
+  for(ss_i in c(1:ss_iter)){
     # ss_i <- 2
     if(ss_i >= 2){
-      train_index <- caret::createDataPartition(output_labels$Label, p = .9, 
+      train_index <- caret::createDataPartition(output_labels$Label, p = p, 
                                                 list = FALSE, 
                                                 times = 1)
       data <- data[train_index, ]
@@ -215,7 +216,23 @@ data <- combined_data %>%
   column_to_rownames("sample")
 assertthat::are_equal(rownames(data), output_labels$sample)
 
-all_result_df <- run_pipeline_multiple_subsets(data, output_labels)
+# print(dim(data))
+# for(ss_i in c(1:15)){
+#   # ss_i <- 2
+#   if(ss_i >= 2){
+#     train_index <- caret::createDataPartition(output_labels$Label, p = 0.93, 
+#                                               list = FALSE, 
+#                                               times = 1)
+#     data <- data[train_index, ]
+#     output_labels <- output_labels[train_index, ]    
+#   }
+#   print(ss_i)
+#   print(dim(data))
+# }
+
+
+
+all_result_df <- run_pipeline_multiple_subsets(data, output_labels, p = 0.93, ss_iter = 15)
 write.csv(all_result_df, "all_result_df_PRIMMUK_data_using_all_levels.csv", row.names = FALSE)
 
 
@@ -248,114 +265,58 @@ pu_result <- read.csv("all_result_df_PRIMMUK_data_using_all_levels.csv")
 # get_result_summary(all_result_df, "svmsig", 2)
 # get_result_summary(all_result_df, "svmrad", 2)
 # get_result_summary(all_result_df, "rf", 2)
-# 
-# get_result_summary(all_result_df, "l1", 5)
-# get_result_summary(all_result_df, "l2", 5)
-# get_result_summary(all_result_df, "svmsig", 5)
-# get_result_summary(all_result_df, "svmrad", 5)
-# get_result_summary(all_result_df, "rf", 5)
-# 
-# write.csv(all_result_df, "all_result_df_PRIMMUK_data_using_all_level.csv",
-#           row.names = FALSE)
-# 
-# 
-# write.csv(result_df, "result_df_full_data_using_species.csv", row.names = FALSE)
-# 
-# write.csv(result_df, "result_df_PRIMMUK_data_using_species.csv", row.names = FALSE)
-# 
-# write.csv(result_df, "result_df_PRIMMUK_data_using_all_level.csv", row.names = FALSE)
-# 
-# 
-# result_df <- read.csv("result_df_full_data_using_species.csv")
-# get_result_summary(result_df, "l1")
-# get_result_summary(result_df, "l2")
-# get_result_summary(result_df, "svmsig")
-# get_result_summary(result_df, "svmrad")
-# get_result_summary(result_df, "rf")
-# 
-# 
-# result_df <- read.csv("result_df_PRIMMUK_data_using_species.csv")
-# get_result_summary(result_df, "l1")
-# get_result_summary(result_df, "l2")
-# get_result_summary(result_df, "svmsig")
-# get_result_summary(result_df, "svmrad")
-# get_result_summary(result_df, "rf")
-# 
-# 
-# result_df <- read.csv("result_df_PRIMMUK_data_using_all_level.csv")
-# get_result_summary(result_df, "l1")
-# get_result_summary(result_df, "l2")
-# get_result_summary(result_df, "svmsig")
-# get_result_summary(result_df, "svmrad")
-# get_result_summary(result_df, "rf")
-# 
-# 
-# result_df <- read.csv("all_result_df_PRIMMUK_data_using_all_level.csv")
-# get_result_summary(result_df, "l1")
-# get_result_summary(result_df, "l2")
-# get_result_summary(result_df, "svmsig")
-# get_result_summary(result_df, "svmrad")
-# get_result_summary(result_df, "rf")
-# 
-# get_result_summary(result_df, "l1", 2)
-# get_result_summary(result_df, "l2", 2)
-# get_result_summary(result_df, "svmsig", 2)
-# get_result_summary(result_df, "svmrad", 2)
-# get_result_summary(result_df, "rf", 2)
-# 
-# get_result_summary(result_df, "l1", 3)
-# get_result_summary(result_df, "l2", 3)
-# get_result_summary(result_df, "svmsig", 3)
-# get_result_summary(result_df, "svmrad", 3)
-# get_result_summary(result_df, "rf", 3)
-# 
-# get_result_summary(result_df, "l1", 5)
-# get_result_summary(result_df, "l2", 5)
-# get_result_summary(result_df, "svmsig", 5)
-# get_result_summary(result_df, "svmrad", 5)
-# get_result_summary(result_df, "rf", 5)
-# 
-# get_result_summary(result_df, "l1", 9)
-# get_result_summary(result_df, "l2", 9)
-# get_result_summary(result_df, "svmsig", 9)
-# get_result_summary(result_df, "svmrad", 9)
-# get_result_summary(result_df, "rf", 9)
-# 
-# get_result_summary(result_df, "l1", 10)
-# get_result_summary(result_df, "l2", 10)
-# get_result_summary(result_df, "svmsig", 10)
-# get_result_summary(result_df, "svmrad", 10)
-# get_result_summary(result_df, "rf", 10)
+
 
 result_df <- full_data_result
 
+result <- "primm"
+on_train_data = FALSE
+metric_name = "auc"
 model = "rf"
-plot_title = "Performance of Random Forest model with median metrics"
-plot_variation <- function(result_df, model = "rf",
-                           plot_title = "Performance of Random Forest model with median metrics"){
+
+plot_variation <- function(result = "full", 
+                           on_train_data = FALSE,
+                           metric_name = "auc",
+                           model = "rf"){
+  
+  if(result == "full"){
+    result_df <- read.csv("all_result_df_full_data_using_all_levels.csv")
+  } else{
+    result_df <- read.csv("all_result_df_PRIMMUK_data_using_all_levels.csv") 
+  }
+  
   data_to_plot <- result_df %>%
     filter(cm == model)
   
   
-  #create plot with fitted curve for training results
-  data_to_plot <- data_to_plot %>%
-    filter(is.na(iter))
-  
-  
-  #create plot with fitted curve for test results
-  data_to_plot <- data_to_plot %>%
-    filter(!is.na(iter)) %>%
-    group_by(samples) %>%
-    summarise(med_acc = median(acc), med_auc = median(auc)) %>%
-    pivot_longer(!samples, names_to = "metric", values_to = "val")
-  
-  metric_name <- "med_auc"
-  data_to_plot <- data_to_plot %>%
-    filter(metric == metric_name)
-  
-  data_to_plot <- data_to_plot %>%
-    filter(samples > 32)
-  
+  if(on_train_data){
+    #create plot with fitted curve for training results
+    data_to_plot <- data_to_plot %>%
+      filter(is.na(iter)) 
+    data_to_plot <- data_to_plot %>%
+      select(samples, metric_name) %>%
+      mutate("metric" = metric_name) %>%
+      rename(c("val" = metric_name))    
+  } else{
+    #create plot with fitted curve for test results
+    data_to_plot <- data_to_plot %>%
+      filter(!is.na(iter)) %>%
+      group_by(samples) %>%
+      summarise(med_acc = median(acc), med_auc = median(auc)) %>%
+      pivot_longer(!samples, names_to = "metric", values_to = "val")
+    
+    metric_name <- paste("med", metric_name, sep = "_")
+    data_to_plot <- data_to_plot %>%
+      filter(metric == metric_name)    
+  }
+
+  plot_title <- paste("Performance of", model, "on", 
+                      if(on_train_data){
+                        "train data"
+                      } else{
+                        "test data"
+                      },
+                      "with median", gsub("med_", "", metric_name))
   
   ggplot(data_to_plot) +
     geom_line(aes(x = samples, y = val, color = metric)) +
@@ -363,26 +324,108 @@ plot_variation <- function(result_df, model = "rf",
     xlab("Number of Samples") +
     ylab("Metric Value") +
     ggtitle(plot_title)
-  ggsave("variation_rf_median.png")
+  
+  file_name <- paste(result, model, on_train_data, metric_name, ".png", sep = "_")
+  
+  ggsave(file_name)
+}
+
+setwd("~/UNSW/LiverCancerGroup/sample_size_estimation/")
+
+for(r in c("full", "PRIMMUK")){
+  for(otc in c(FALSE, TRUE)){
+    for(model in c("l1", "l2", "svmsig", "svmrad", "rf")){
+      for(mn in c("acc", "auc")){
+        plot_variation(result = r, on_train_data = otc, metric_name = mn, model = model)
+      }
+    }
+  }
+}
+# plot_variation(result = "full", 
+#                on_train_data = FALSE,
+#                metric_name = "auc",
+#                model = "rf")
+# plot_variation(result = "full", 
+#                on_train_data = TRUE,
+#                metric_name = "auc",
+#                model = "rf")
+
+
+result = "PRIMMUK" 
+on_train_data = FALSE
+metric_name = "auc"
+model = "rf"
+plot_fit <- function(result = "PRIMMUK", 
+                     on_train_data = FALSE,
+                     metric_name = "auc",
+                     model = "rf"){
+  
+  if(result == "full"){
+    result_df <- read.csv("all_result_df_full_data_using_all_levels.csv")
+  } else{
+    result_df <- read.csv("all_result_df_PRIMMUK_data_using_all_levels.csv") 
+  }
+  
+  data_to_plot <- result_df %>%
+    filter(cm == model)
   
   
+  if(on_train_data){
+    #create plot with fitted curve for training results
+    data_to_plot <- data_to_plot %>%
+      filter(is.na(iter)) 
+    data_to_plot <- data_to_plot %>%
+      select(samples, metric_name) %>%
+      mutate("metric" = metric_name) %>%
+      rename(c("val" = metric_name))    
+  } else{
+    #create plot with fitted curve for test results
+    data_to_plot <- data_to_plot %>%
+      filter(!is.na(iter)) %>%
+      group_by(samples) %>%
+      summarise(med_acc = median(acc), med_auc = median(auc)) %>%
+      pivot_longer(!samples, names_to = "metric", values_to = "val")
+    
+    metric_name <- paste("med", metric_name, sep = "_")
+    data_to_plot <- data_to_plot %>%
+      filter(metric == metric_name)    
+  }
   
+  file_name <- paste("fitted_curve",
+    result, model, on_train_data, metric_name, ".png", sep = "_")
+
   x <- data_to_plot$samples
   y <- data_to_plot$val
-  
+
   plot(x, y)
-  
-  m <- nls(y ~ log(x + a) + b)
-  
-  m <- nls(y ~ a * x / (b + x))
-  
-  m <- nls(y ~ a * x / (b + x), start = list(a = a_start,
-                                             b = b_start))
+
+  # m <- nls(y ~ a*log(x + b))
+  m <- nls(y ~ a*log(x + b), start = list(a = 5,
+                                          b = -10))
+
+  # m <- nls(y ~ (a * x) / (b + x), start = list(a = 0.6,
+  #                                              b = -5))
+  # 
+  # m <- nls(y ~ a / exp(1/(x-3)))
+  # 
+  # m <- nls(y ~ a * x / (b + x), start = list(a = a_start,
+  #                                            b = b_start))
 
   #get some estimation of goodness of fit
+  
+  # m <- nls(y ~ a - exp(-x))
+  
   cor(y,predict(m))
   #plot
-  plot(x,y)
-  lines(x,predict(m),lty=2,col="red",lwd=3)
+  # plot(x,y)
+  # lines(x,predict(m),lty=2,col="blue",lwd=3)
+  
+  ggplot() +
+    geom_line(aes(x = x, y = predict(m)), linetype = "dashed", color = "blue") +
+    geom_point(aes(x = x, y = y), color = "red") +
+    xlab("Sample Size") +
+    ylab("Median AUC")
+  ggsave(file_name)
   
 }
+
