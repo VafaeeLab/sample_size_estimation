@@ -5,7 +5,7 @@ A standard pipeline has been developed to estimate sample size required to achie
 # Steps in the pipeline
 * Data : species level or all level abundance
 * Filter out features with 0 overall abundance
-* Add 10-5 to all values
+* Add 10<sup>-5</sup> to all values
 * Log transform
 * z – score normalization
 * Obtain best features using Ranger as feature selection method
