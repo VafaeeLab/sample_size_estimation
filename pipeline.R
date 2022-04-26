@@ -391,6 +391,12 @@ plot_fit <- function(result = "PRIMMUK",
       filter(metric == metric_name)    
   }
   
+  
+  #filter out values that come down
+  data_to_plot <- data_to_plot[c(1:4, 9, 13),]
+  
+  
+  
   file_name <- paste("fitted_curve",
     result, model, on_train_data, metric_name, ".png", sep = "_")
 
@@ -399,21 +405,35 @@ plot_fit <- function(result = "PRIMMUK",
 
   plot(x, y)
 
-  # m <- nls(y ~ a*log(x + b))
+  m <- nls(y ~ a*log(x + b))
   m <- nls(y ~ a*log(x + b), start = list(a = 5,
                                           b = -10))
 
-  # m <- nls(y ~ (a * x) / (b + x), start = list(a = 0.6,
-  #                                              b = -5))
+  m <- nls(y ~ (a * x) / (b + x))
+  m <- nls(y ~ (a * x) / (b + x), start = list(a = 0.6,
+                                               b = -5))
   # 
-  # m <- nls(y ~ a / exp(1/(x-3)))
+  m <- nls(y ~ a / exp(1/(x-3)))
   # 
   # m <- nls(y ~ a * x / (b + x), start = list(a = a_start,
   #                                            b = b_start))
 
   #get some estimation of goodness of fit
   
+  m <- nls(y ~ a - exp(-x + b), start = list(a = 0.5, b = 30))
+  # 0.9556264
+  # Nonlinear regression model
+  # model: y ~ a - exp(-x + b)
+  # data: parent.frame()
+  # a       b 
+  # 0.7244 28.2211 
+  # residual sum-of-squares: 0.002042
+  
+  m <- nls(y ~ a - exp(-x + b), start = list(a = 0.7, b = 30))
+  
+  m <- nls(y ~ - a*exp(-0.05*x + b), start = list(a = 0.9, b = 50))
   # m <- nls(y ~ a - exp(-x))
+  # m <- nls(y ~ - exp(-x + b))
   
   cor(y,predict(m))
   #plot
@@ -421,11 +441,23 @@ plot_fit <- function(result = "PRIMMUK",
   # lines(x,predict(m),lty=2,col="blue",lwd=3)
   
   ggplot() +
-    geom_line(aes(x = x, y = predict(m)), linetype = "dashed", color = "blue") +
+    geom_line(aes(x = x, y = predict(m, newdata = list(x = data_to_plot$samples))), 
+              linetype = "dashed", color = "blue") +
     geom_point(aes(x = x, y = y), color = "red") +
     xlab("Sample Size") +
     ylab("Median AUC")
   ggsave(file_name)
+  
+  
+  #current best m
+  # Nonlinear regression model
+  # model: y ~ a * log(x + b)
+  # data: parent.frame()
+  # a      b 
+  # 0.1819 0.2212 
+  # residual sum-of-squares: 0.02912
+  
+  plot(x, log(10*y))
   
 }
 
