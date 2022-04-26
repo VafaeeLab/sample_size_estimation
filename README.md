@@ -16,7 +16,8 @@ A standard pipeline has been developed to estimate sample size required to achie
 * Median accuracy and AUC across 50 different train-test splits reported on test set
 
 # Predicted sample size
-![sample_size_plot](fitted_curve_PRIMMUK_rf_FALSE_med_auc_.png)
+![sample_size_plot](plots/fitted_curve_PRIMMUK_rf_FALSE_med_auc_.png)
+
 
 # References
 [1] Lee KA, Thomas AM, et al.Cross-cohort gut microbiome associations with immune checkpoint inhibitor response in advanced melanoma. Nat Med 2022.
