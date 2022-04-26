@@ -441,7 +441,7 @@ plot_fit <- function(result = "PRIMMUK",
   # lines(x,predict(m),lty=2,col="blue",lwd=3)
   
   ggplot() +
-    geom_line(aes(x = x, y = predict(m, newdata = list(x = data_to_plot$samples))), 
+    geom_line(aes(x = c(30:100), y = predict(m, newdata = list(x = c(30:100)))), 
               linetype = "dashed", color = "blue") +
     geom_point(aes(x = x, y = y), color = "red") +
     xlab("Sample Size") +
