@@ -156,6 +156,61 @@ run_pipeline_multiple_subsets <- function(data, output_labels, p = 0.98, ss_iter
 }
 
 
+
+
+run_pipeline_multiple_subsets_same_test <- function(data, output_labels, p = 0.98, ss_iter = 30){
+  all_result_df <- data.frame(matrix(nrow = 0, ncol = 5, 
+                                     dimnames = list(c(), 
+                                                     c("size_iter", "samples",
+                                                       "cm", 
+                                                       "acc", "auc"))
+                                     )
+                              )
+  
+  test_index <- caret::createDataPartition(output_labels$Label, p = 0.2, 
+                                            list = FALSE, 
+                                            times = 1)
+  data.test <- data[test_index, ]
+  output_labels.test <- output_labels[test_index, ]  
+  print("test data")
+  print(dim(data.test))
+  
+  data <- data[-test_index, ]
+  output_labels <- output_labels[-test_index, ]
+  
+  
+  for(ss_i in c(1:ss_iter)){
+    # ss_i <- 2
+    if(ss_i >= 2){
+      train_index <- caret::createDataPartition(output_labels$Label, p = p, 
+                                                list = FALSE, 
+                                                times = 1)
+      data <- data[train_index, ]
+      output_labels <- output_labels[train_index, ]    
+    }
+    print(ss_i)
+    print(dim(data))
+    
+    result_df <- pipeline(data, output_labels,
+                          data.test, output_labels.test,
+                          classes = c("yes", "no"))
+    
+    #result_df : cm, acc, auc, iter
+    
+    result_df <- result_df %>%
+      mutate(acc = as.double(acc), auc = as.double(auc))
+    
+    result_df <- result_df %>%
+      mutate("size_iter" = ss_i, .before = "cm") %>%
+      mutate("samples" = dim(data)[1], .after = "size_iter")
+    
+    all_result_df <- rbind(all_result_df,
+                           result_df)
+  } 
+  return (all_result_df)
+}
+
+
 ###################################################################
 
 # with 164 patients
@@ -187,7 +242,8 @@ all_result_df <- run_pipeline_multiple_subsets(data, output_labels)
 write.csv(all_result_df, "all_result_df_full_data_using_all_levels.csv", row.names = FALSE)
 
 
-
+all_result_df_same_test <- run_pipeline_multiple_subsets_same_test(data, output_labels)
+write.csv(all_result_df_same_test, "all_result_df_same_test_full_data_using_all_levels.csv", row.names = FALSE)
 
 #with PRIMM-UK subcohort
 
@@ -234,6 +290,10 @@ assertthat::are_equal(rownames(data), output_labels$sample)
 
 all_result_df <- run_pipeline_multiple_subsets(data, output_labels, p = 0.93, ss_iter = 15)
 write.csv(all_result_df, "all_result_df_PRIMMUK_data_using_all_levels.csv", row.names = FALSE)
+
+
+all_result_df_same_test <- run_pipeline_multiple_subsets_same_test(data, output_labels, p = 0.93, ss_iter = 15)
+write.csv(all_result_df_same_test, "all_result_df_same_test_PRIMMUK_data_using_all_levels.csv", row.names = FALSE)
 
 
 full_data_result <- read.csv("all_result_df_full_data_using_all_levels.csv")
@@ -457,7 +517,94 @@ plot_fit <- function(result = "PRIMMUK",
   # 0.1819 0.2212 
   # residual sum-of-squares: 0.02912
   
+  m
+  
   plot(x, log(10*y))
   
 }
+
+
+
+##############
+
+
+
+data <- read.csv("data/all_level_formatted_data.csv")
+colnames(data)[1] <- "sample"
+sum(is.na(data))
+output_labels <- meta_data %>%
+  filter(!is.na(RECIST) & RECIST != "SD") %>%
+  # filter(subcohort %in% c("PRIMM-UK")) %>%
+  select(c(sample, ICIresponder)) 
+
+output_labels <- output_labels %>%
+  dplyr::rename(c("Label" = "ICIresponder"))
+
+combined_data <- output_labels %>%
+  inner_join(data)
+missing1 <- output_labels %>%
+  anti_join(data)
+missing2 <- data %>%
+  anti_join(output_labels)
+
+data <- combined_data %>%
+  select(-c(Label)) %>%
+  column_to_rownames("sample")
+assertthat::are_equal(rownames(data), output_labels$sample)
+
+
+all_result_df_same_test <- run_pipeline_multiple_subsets_same_test(data, output_labels)
+write.csv(all_result_df_same_test, "all_result_df_same_test_noSD_data_using_all_levels.csv", row.names = FALSE)
+
+
+############
+
+result <- "full"
+metric_name <- "auc"
+model <- "rf"
+plot_variation_same_test <- function(result = "full",
+                           metric_name = "auc",
+                           model = "rf"){
+  
+  if(result == "full"){
+    result_df <- read.csv("all_result_df_same_test_full_data_using_all_levels.csv")
+  } else if(result == "PRIMMUK"){
+    result_df <- read.csv("all_result_df_same_test_PRIMMUK_data_using_all_levels.csv") 
+  } else{
+    result_df <- read.csv("all_result_df_same_test_noSD_data_using_all_levels.csv")
+  }
+  
+  data_to_plot <- result_df %>%
+    filter(cm == model)
+  
+  data_to_plot <- data_to_plot %>%
+    select(samples, metric_name) %>%
+    mutate("metric" = metric_name) %>%
+    rename(c("val" = metric_name))  
+  
+  plot_title <- paste("Performance of", model, "on common test data with metric", 
+                      metric_name)
+  
+  ggplot(data_to_plot) +
+    geom_line(aes(x = samples, y = val, color = metric)) +
+    geom_point(aes(x = samples, y = val, color = metric)) +
+    xlab("Number of Samples") +
+    ylab("Metric Value") +
+    ggtitle(plot_title)
+  
+  file_name <- paste(result, model, metric_name, ".png", sep = "_")
+  
+  ggsave(paste0("plots_common_test_data/",file_name))
+}
+
+
+for(r in c("full", "PRIMMUK", "noSD")){
+    for(model in c("l1", "l2", "svmsig", "svmrad", "rf")){
+      for(mn in c("acc", "auc")){
+        plot_variation_same_test(result = r, metric_name = mn, model = model)
+      }
+    }
+}
+
+
 
